@@ -7,8 +7,8 @@ import com.spawningoverhaul.spawn.SpawnMultiplierCalculator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.MobSpawnType;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.entity.living.MobSpawnEvent;
 
 public final class SpawnEventHandler {
     @SubscribeEvent
@@ -22,7 +22,7 @@ public final class SpawnEventHandler {
         SpawnContext context=new SpawnContext(level,pos,mob.getType(),type);
         double multiplier=SpawnMultiplierCalculator.calculate(context);
         if(!SpawnMultiplierCalculator.shouldAllow(multiplier,level.getRandom())){
-            event.setResult(MobSpawnEvent.PositionCheck.Result.FAIL);
+            event.setResult(MobSpawnEvent.PositionCheck.Result.DENY);
             if(SpawningConfig.debug)SpawningOverhaul.LOGGER.info("Rejected {} at {} multiplier={} cave={} forest={} structure={}",mob.getType(),pos,multiplier,context.isCave(),context.forestDensity(),context.isDangerousStructure());
         }
     }
