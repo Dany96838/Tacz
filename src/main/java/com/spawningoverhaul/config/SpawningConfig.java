@@ -1,65 +1,52 @@
 package com.spawningoverhaul.config;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Properties;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class SpawningConfig {
-    private static final Properties VALUES = new Properties();
-    public static boolean enabled = true;
-    public static double baseMultiplier = 0.2;
-    public static double minCaveMultiplier = 1.0;
-    public static double maxCaveMultiplier = 5.0;
-    public static double minForestMultiplier = 1.0;
-    public static double maxForestMultiplier = 3.0;
-    public static double dangerousStructureMultiplier = 3.0;
-    public static boolean structuresEnabled = true;
-    public static boolean spiderOnlyInCaves = true;
-    public static boolean debug = false;
-
-    private SpawningConfig() {}
-
-    public static void load(Path path) {
-        try {
-            if (Files.exists(path)) try (InputStream in = Files.newInputStream(path)) { VALUES.load(in); }
-            enabled = bool("enabled", true);
-            baseMultiplier = number("baseMultiplier", 0.2);
-            minCaveMultiplier = number("minCaveMultiplier", 1.0);
-            maxCaveMultiplier = number("maxCaveMultiplier", 5.0);
-            minForestMultiplier = number("minForestMultiplier", 1.0);
-            maxForestMultiplier = number("maxForestMultiplier", 3.0);
-            dangerousStructureMultiplier = number("dangerousStructureMultiplier", 3.0);
-            structuresEnabled = bool("structuresEnabled", true);
-            spiderOnlyInCaves = bool("spiderOnlyInCaves", true);
-            debug = bool("debug", false);
+    private static final Properties P=new Properties();
+    public static boolean enabled=true, structuresEnabled=true, spiderOnlyInCaves=true, disableCreeperNearStructure=false, debug=false;
+    public static double baseMultiplier=0.2,minCaveMultiplier=1,maxCaveMultiplier=5,minForestMultiplier=1,maxForestMultiplier=3,dangerousStructureMultiplier=3;
+    public static int denseForestLogThreshold=50,denseForestScanRadius=10;
+    public static final Set<String> enabledDimensions=ConcurrentHashMap.newKeySet();
+    public static final Set<String> additionalDangerousStructures=ConcurrentHashMap.newKeySet();
+    public static final Set<String> additionalSafeStructures=ConcurrentHashMap.newKeySet();
+    public static final Map<String,Double> mobSpecificMultipliers=new ConcurrentHashMap<>();
+    private SpawningConfig(){}
+    public static boolean isDimensionEnabled(String id){return enabledDimensions.contains(id);}
+    public static void load(Path path){
+        try{
+            if(Files.exists(path))try(InputStream in=Files.newInputStream(path)){P.load(in);}
+            enabled=b("enabled",true); structuresEnabled=b("enableStructureModifications",true);
+            spiderOnlyInCaves=b("spiderOnlyInCave",true); disableCreeperNearStructure=b("disableCreeperNearStructure",false); debug=b("debugmode",false);
+            baseMultiplier=d("baseMultiplier",0.2); minCaveMultiplier=d("minCaveMultiplier",1); maxCaveMultiplier=d("maxCaveMultiplier",5);
+            minForestMultiplier=d("minForestMultiplier",1); maxForestMultiplier=d("maxForestMultiplier",3); dangerousStructureMultiplier=d("dangerousStructureMultiplier",3);
+            denseForestLogThreshold=i("denseForestLogThreshold",50); denseForestScanRadius=i("denseForestScanRadius",10);
+            fill(enabledDimensions,"enabledDimensions","minecraft:overworld");
+            fill(additionalDangerousStructures,"additionalDangerousStructures","");
+            fill(additionalSafeStructures,"additionalSafeStructures","");
+            mobSpecificMultipliers.clear();
+            String raw=P.getProperty("mobSpecificMultipliers","");
+            for(String item:raw.split(",")){String[] pair=item.trim().split("=",2);if(pair.length==2)try{mobSpecificMultipliers.put(pair[0].trim(),Double.parseDouble(pair[1].trim()));}catch(NumberFormatException ignored){}}
             save(path);
-        } catch (IOException e) {
-            throw new IllegalStateException("Could not load spawningoverhaul.properties", e);
-        }
+        }catch(IOException e){throw new IllegalStateException("Failed to load Spawning Overhaul config",e);}
     }
-
-    private static boolean bool(String key, boolean fallback) {
-        return Boolean.parseBoolean(VALUES.getProperty(key, Boolean.toString(fallback)));
-    }
-    private static double number(String key, double fallback) {
-        try { return Double.parseDouble(VALUES.getProperty(key, Double.toString(fallback))); }
-        catch (NumberFormatException ignored) { return fallback; }
-    }
-    private static void save(Path path) throws IOException {
-        VALUES.setProperty("enabled", Boolean.toString(enabled));
-        VALUES.setProperty("baseMultiplier", Double.toString(baseMultiplier));
-        VALUES.setProperty("minCaveMultiplier", Double.toString(minCaveMultiplier));
-        VALUES.setProperty("maxCaveMultiplier", Double.toString(maxCaveMultiplier));
-        VALUES.setProperty("minForestMultiplier", Double.toString(minForestMultiplier));
-        VALUES.setProperty("maxForestMultiplier", Double.toString(maxForestMultiplier));
-        VALUES.setProperty("dangerousStructureMultiplier", Double.toString(dangerousStructureMultiplier));
-        VALUES.setProperty("structuresEnabled", Boolean.toString(structuresEnabled));
-        VALUES.setProperty("spiderOnlyInCaves", Boolean.toString(spiderOnlyInCaves));
-        VALUES.setProperty("debug", Boolean.toString(debug));
-        Files.createDirectories(path.getParent());
-        try (OutputStream out = Files.newOutputStream(path)) { VALUES.store(out, "Spawning Overhaul natural spawn settings"); }
+    private static boolean b(String k,boolean v){return Boolean.parseBoolean(P.getProperty(k,Boolean.toString(v)));}
+    private static double d(String k,double v){try{return Double.parseDouble(P.getProperty(k,Double.toString(v)));}catch(Exception e){return v;}}
+    private static int i(String k,int v){try{return Integer.parseInt(P.getProperty(k,Integer.toString(v)));}catch(Exception e){return v;}}
+    private static void fill(Set<String> out,String key,String defaults){out.clear();String raw=P.getProperty(key,defaults);for(String s:raw.split(","))if(!s.isBlank())out.add(s.trim());}
+    public static void save(Path path)throws IOException{
+        P.setProperty("enabled",Boolean.toString(enabled));P.setProperty("baseMultiplier",Double.toString(baseMultiplier));
+        P.setProperty("minCaveMultiplier",Double.toString(minCaveMultiplier));P.setProperty("maxCaveMultiplier",Double.toString(maxCaveMultiplier));
+        P.setProperty("minForestMultiplier",Double.toString(minForestMultiplier));P.setProperty("maxForestMultiplier",Double.toString(maxForestMultiplier));
+        P.setProperty("dangerousStructureMultiplier",Double.toString(dangerousStructureMultiplier));P.setProperty("enableStructureModifications",Boolean.toString(structuresEnabled));
+        P.setProperty("spiderOnlyInCave",Boolean.toString(spiderOnlyInCaves));P.setProperty("disableCreeperNearStructure",Boolean.toString(disableCreeperNearStructure));
+        P.setProperty("debugmode",Boolean.toString(debug));P.setProperty("denseForestLogThreshold",Integer.toString(denseForestLogThreshold));P.setProperty("denseForestScanRadius",Integer.toString(denseForestScanRadius));
+        P.setProperty("enabledDimensions",String.join(",",enabledDimensions));P.setProperty("additionalDangerousStructures",String.join(",",additionalDangerousStructures));
+        P.setProperty("additionalSafeStructures",String.join(",",additionalSafeStructures));
+        List<String> pairs=new ArrayList<>();mobSpecificMultipliers.forEach((k,v)->pairs.add(k+"="+v));P.setProperty("mobSpecificMultipliers",String.join(",",pairs));
+        Files.createDirectories(path.getParent());try(OutputStream out=Files.newOutputStream(path)){P.store(out,"Spawning Overhaul — edit values, then restart the world/server");}
     }
 }
