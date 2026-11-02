@@ -1,11 +1,13 @@
 modLoader="javafml"
 loaderVersion="[47,)"
 license="MIT"
+issueTrackerURL="https://github.com/Dany96838/Tacz/issues"
 [[mods]]
 modId="spawningoverhaul"
 version="${mod_version}"
 displayName="Spawning Overhaul"
-description='''Environment-based natural mob spawning ported from the upstream Spawning Overhaul project.'''
+authors="Payangar; 1.20.1 port contributors"
+description='''Environment-based natural mob spawning overhaul, ported for Minecraft 1.20.1 NeoForge.'''
 [[dependencies.spawningoverhaul]]
 modId="minecraft"
 type="required"
