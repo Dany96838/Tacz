@@ -18,7 +18,7 @@ public final class SpawningOverhaul {
         SpawningConfig.load(FMLPaths.CONFIGDIR.get().resolve("spawningoverhaul.properties"));
         MobRuleRegistry.registerDefaults();
         MinecraftForge.EVENT_BUS.register(new SpawnEventHandler());
-        NeoForge.EVENT_BUS.register(new CommandRegistrationHandler());
+        MinecraftForge.EVENT_BUS.register(new CommandRegistrationHandler());
         LOGGER.info("Spawning Overhaul initialized for Minecraft 1.20.1 / Forge 47.3.0");
     }
 }
