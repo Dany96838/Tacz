@@ -17,7 +17,7 @@ public final class SpawnDebugCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher){
         dispatcher.register(Commands.literal("spawndebug").requires(s->s.hasPermission(2)).executes(ctx->{
             CommandSourceStack source=ctx.getSource();
-            if(!(source.getLevel() instanceof ServerLevel level)){source.sendFailure(Component.literal("Use this command in a server world."));return 0;}
+            ServerLevel level=source.getLevel();
             BlockPos pos=BlockPos.containing(source.getPosition());
             SpawnContext c=new SpawnContext(level,pos,EntityType.ZOMBIE,MobSpawnType.NATURAL);c.detectAll();
             double multiplier=SpawnMultiplierCalculator.calculate(c);
