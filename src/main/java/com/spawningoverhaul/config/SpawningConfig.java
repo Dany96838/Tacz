@@ -9,6 +9,8 @@ public final class SpawningConfig {
     private static final Properties P=new Properties();
     public static boolean enabled=true, structuresEnabled=true, spiderOnlyInCaves=true, disableCreeperNearStructure=false, debug=false;
     public static double baseMultiplier=0.2,minCaveMultiplier=1,maxCaveMultiplier=5,minForestMultiplier=1,maxForestMultiplier=3,dangerousStructureMultiplier=3;
+    // Multiplies the vanilla per-category natural mob cap. 2.0 means twice the normal cap.
+    public static double mobCapMultiplier=2.0;
     public static int denseForestLogThreshold=50,denseForestScanRadius=10;
     public static final Set<String> enabledDimensions=ConcurrentHashMap.newKeySet();
     public static final Set<String> additionalDangerousStructures=ConcurrentHashMap.newKeySet();
@@ -23,6 +25,7 @@ public final class SpawningConfig {
             spiderOnlyInCaves=b("spiderOnlyInCave",true); disableCreeperNearStructure=b("disableCreeperNearStructure",false); debug=b("debugmode",false);
             baseMultiplier=d("baseMultiplier",0.2); minCaveMultiplier=d("minCaveMultiplier",1); maxCaveMultiplier=d("maxCaveMultiplier",5);
             minForestMultiplier=d("minForestMultiplier",1); maxForestMultiplier=d("maxForestMultiplier",3); dangerousStructureMultiplier=d("dangerousStructureMultiplier",3);
+            mobCapMultiplier=Math.max(1.0,Math.min(10.0,d("mobCapMultiplier",2.0)));
             denseForestLogThreshold=i("denseForestLogThreshold",50); denseForestScanRadius=i("denseForestScanRadius",10);
             fill(enabledDimensions,"enabledDimensions","minecraft:overworld");
             fill(additionalDangerousStructures,"additionalDangerousStructures","");
@@ -41,7 +44,8 @@ public final class SpawningConfig {
         P.setProperty("enabled",Boolean.toString(enabled));P.setProperty("baseMultiplier",Double.toString(baseMultiplier));
         P.setProperty("minCaveMultiplier",Double.toString(minCaveMultiplier));P.setProperty("maxCaveMultiplier",Double.toString(maxCaveMultiplier));
         P.setProperty("minForestMultiplier",Double.toString(minForestMultiplier));P.setProperty("maxForestMultiplier",Double.toString(maxForestMultiplier));
-        P.setProperty("dangerousStructureMultiplier",Double.toString(dangerousStructureMultiplier));P.setProperty("enableStructureModifications",Boolean.toString(structuresEnabled));
+        P.setProperty("dangerousStructureMultiplier",Double.toString(dangerousStructureMultiplier));P.setProperty("mobCapMultiplier",Double.toString(mobCapMultiplier));
+        P.setProperty("enableStructureModifications",Boolean.toString(structuresEnabled));
         P.setProperty("spiderOnlyInCave",Boolean.toString(spiderOnlyInCaves));P.setProperty("disableCreeperNearStructure",Boolean.toString(disableCreeperNearStructure));
         P.setProperty("debugmode",Boolean.toString(debug));P.setProperty("denseForestLogThreshold",Integer.toString(denseForestLogThreshold));P.setProperty("denseForestScanRadius",Integer.toString(denseForestScanRadius));
         P.setProperty("enabledDimensions",String.join(",",enabledDimensions));P.setProperty("additionalDangerousStructures",String.join(",",additionalDangerousStructures));
