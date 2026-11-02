@@ -1,0 +1,118 @@
+name: Build matrix - 6 approaches
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: legacy-2087
+            label: "1 - ModDev LegacyForge 2.0.87"
+            mode: legacy
+            plugin: "2.0.87"
+          - id: legacy-2106
+            label: "2 - ModDev LegacyForge 2.0.106"
+            mode: legacy
+            plugin: "2.0.106"
+          - id: legacy-2147
+            label: "3 - ModDev LegacyForge 2.0.147"
+            mode: legacy
+            plugin: "2.0.147"
+          - id: legacy-repos
+            label: "4 - LegacyForge with plugin-managed repositories"
+            mode: legacy-repos
+            plugin: "2.0.147"
+          - id: forgegradle
+            label: "5 - ForgeGradle fallback (Forge 1.20.1)"
+            mode: forge
+            plugin: "6.0.24"
+          - id: artifact
+            label: "6 - Direct NeoForge 47.1.106 artifact resolution"
+            mode: artifact
+            plugin: "2.0.147"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+      - name: Prepare isolated build variant
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p .ci-variant
+          if [ "${{ matrix.mode }}" = "legacy" ]; then
+            sed "s/version '2.0.87'/version '${{ matrix.plugin }}'/" build.gradle > .ci-variant/build.gradle
+            cp settings.gradle .ci-variant/settings.gradle
+            cp gradle.properties .ci-variant/gradle.properties
+            cp -R src .ci-variant/src
+          elif [ "${{ matrix.mode }}" = "legacy-repos" ]; then
+            sed "s/version '2.0.87'/version '${{ matrix.plugin }}'/" build.gradle > .ci-variant/build.gradle
+            cat > .ci-variant/settings.gradle <<'EOF'
+          pluginManagement {
+              repositories { gradlePluginPortal(); maven { url = 'https://maven.neoforged.net/releases' }; mavenCentral() }
+          }
+          rootProject.name = 'spawning-overhaul-legacy-repositories'
+          EOF
+            cp gradle.properties .ci-variant/gradle.properties
+            cp -R src .ci-variant/src
+          elif [ "${{ matrix.mode }}" = "forge" ]; then
+            cat > .ci-variant/settings.gradle <<'EOF'
+          pluginManagement { repositories { gradlePluginPortal(); maven { url = 'https://maven.minecraftforge.net' }; mavenCentral() } }
+          rootProject.name = 'spawning-overhaul-forge-fallback'
+          EOF
+            cp gradle.properties .ci-variant/gradle.properties
+            cat > .ci-variant/build.gradle <<'EOF'
+          plugins {
+              id 'java'
+              id 'net.minecraftforge.gradle' version '6.0.24'
+          }
+          group = 'com.spawningoverhaul'
+          version = '1.20.1-0.1.0'
+          base { archivesName = 'spawning-overhaul-forge-1.20.1' }
+          java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
+          minecraft {
+              mappings channel: 'official', version: '1.20.1'
+              runs { client { workingDirectory project.file('run') }; server { workingDirectory project.file('run-server') } }
+          }
+          dependencies { minecraft 'net.minecraftforge:forge:1.20.1-47.3.0' }
+          tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 17 }
+          EOF
+            cp -R src .ci-variant/src
+          else
+            cat > .ci-variant/settings.gradle <<'EOF'
+          pluginManagement { repositories { gradlePluginPortal(); maven { url = 'https://maven.neoforged.net/releases' }; mavenCentral() } }
+          rootProject.name = 'neoforge-artifact-resolution'
+          EOF
+            cat > .ci-variant/build.gradle <<'EOF'
+          plugins { id 'java' }
+          repositories { maven { url = 'https://maven.neoforged.net/releases' } }
+          configurations { neoforge }
+          dependencies { neoforge 'net.neoforged:forge:1.20.1-47.1.106' }
+          tasks.register('resolveNeoForge') { doLast { configurations.neoforge.resolve(); println 'NeoForge 47.1.106 artifact resolved successfully' } }
+          EOF
+            cp gradle.properties .ci-variant/gradle.properties
+          fi
+      - name: Execute build variant
+        working-directory: .ci-variant
+        shell: bash
+        run: |
+          if [ "${{ matrix.mode }}" = "artifact" ]; then
+            gradle resolveNeoForge
+          else
+            gradle clean build
+          fi
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: result-${{ matrix.id }}
+          path: .ci-variant/build/libs/*.jar
+          if-no-files-found: warn
