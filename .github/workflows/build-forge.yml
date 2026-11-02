@@ -1,10 +1,10 @@
-name: Build Spawning Overhaul - Forge 1.20.1
+name: Build Spawning Overhaul - Forge + NeoForge 1.20.1
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 jobs:
-  build-forge:
+  build-universal:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,10 +15,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.8'
-      - name: Build Forge mod
+      - name: Build universal mod JAR
         run: gradle --no-daemon clean build
+      - name: Validate Forge and NeoForge metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAR="$(find build/libs -maxdepth 1 -name '*.jar' -print -quit)"
+          test -n "$JAR"
+          jar tf "$JAR" | grep -qx 'META-INF/mods.toml'
+          jar tf "$JAR" | grep -qx 'META-INF/neoforge.mods.toml'
+          jar tf "$JAR" | grep -qx 'com/spawningoverhaul/SpawningOverhaul.class'
+          unzip -p "$JAR" META-INF/mods.toml | grep -q 'version="1.20.1-0.1.0"'
+          unzip -p "$JAR" META-INF/neoforge.mods.toml | grep -q 'version="1.20.1-0.1.0"'
+          echo "Universal JAR validated: $JAR"
       - uses: actions/upload-artifact@v4
         with:
-          name: spawning-overhaul-forge-1.20.1
+          name: spawning-overhaul-universal-1.20.1
           path: build/libs/*.jar
           if-no-files-found: error
