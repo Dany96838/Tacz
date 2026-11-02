@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev.legacyforge' version '2.0.87'
+}
+group = mod_group
+version = mod_version
+base { archivesName = mod_id }
+java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
+legacyForge {
+    neoForgeVersion = project.neoforge_version
+    runs {
+        client { client(); gameDirectory = project.file('run') }
+        server { server(); gameDirectory = project.file('run-server') }
+    }
+    mods { spawningoverhaul { sourceSet sourceSets.main } }
+}
+dependencies {
+    implementation 'dev.isxander:yet-another-config-lib:3.2.2+1.20.1-neoforge'
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 17 }
+processResources {
+    inputs.properties([mod_id: mod_id, mod_name: mod_name, mod_version: mod_version, minecraft_version: minecraft_version, neoforge_version: neoforge_version])
+    filesMatching('META-INF/neoforge.mods.toml') { expand(inputs.properties) }
+}
