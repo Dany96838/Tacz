@@ -1,5 +1,5 @@
 pluginManagement {
-    repositories { gradlePluginPortal(); maven { url = 'https://maven.neoforged.net/releases' }; mavenCentral() }
+    repositories { gradlePluginPortal(); maven { url = 'https://maven.minecraftforge.net' }; maven { url = 'https://maven.neoforged.net/releases' }; mavenCentral() }
 }
 dependencyResolutionManagement {
     repositories { mavenCentral(); maven { url = 'https://maven.neoforged.net/releases' }; maven { url = 'https://maven.isxander.dev/releases' } }
