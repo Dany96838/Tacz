@@ -7,7 +7,7 @@ modId="spawningoverhaul"
 version="${mod_version}"
 displayName="Spawning Overhaul"
 authors="Payangar; 1.20.1 port contributors"
-description='''Environment-based natural mob spawning overhaul for Minecraft 1.20.1 Forge.'''
+description='''Environment-based natural mob spawning overhaul for Minecraft 1.20.1 Forge and NeoForge.'''
 [[dependencies.spawningoverhaul]]
 modId="minecraft"
 mandatory=true
@@ -17,6 +17,6 @@ side="BOTH"
 [[dependencies.spawningoverhaul]]
 modId="forge"
 mandatory=true
-versionRange="[47.3.0,)"
+versionRange="[47.1.106,)"
 ordering="NONE"
 side="BOTH"
