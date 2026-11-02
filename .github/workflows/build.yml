@@ -1,25 +1,77 @@
-name: Build Spawning Overhaul
+name: Build Spawning Overhaul - NeoForge 1.20.1
+
 on:
   push:
     branches: [ main ]
-  pull_request:
   workflow_dispatch:
+
 jobs:
   build-neoforge:
+    name: Build NeoForge 1.20.1 (47.1.106)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.8'
-      - name: Compile
-        run: gradle clean build
+
+      # NeoForge 1.20.1 is the pre-20.2 compatibility branch:
+      # it uses the Forge 1.20.1 API/package names and META-INF/mods.toml.
+      # Its artifact coordinates are net.neoforged:forge:1.20.1-47.1.106.
+      - name: Prepare NeoForge-specific project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-neoforge
+          cp settings.gradle gradle.properties .ci-neoforge/
+          cp -R src .ci-neoforge/src
+
+          sed \
+            -e "s/net.minecraftforge:forge:1.20.1-47.3.0/net.neoforged:forge:1.20.1-47.1.106/" \
+            -e "s/mod_id + '-forge'/mod_id + '-neoforge'/" \
+            build.gradle > .ci-neoforge/build.gradle
+
+          # NeoForge 1.20.1 reads the Forge-era mods.toml, not the newer
+          # neoforge.mods.toml format used by NeoForge 1.20.2+.
+          rm -f .ci-neoforge/src/main/resources/META-INF/neoforge.mods.toml
+          sed -i 's/versionRange="\[47.3.0,)"/versionRange="[47.1.106,)"/' \
+            .ci-neoforge/src/main/resources/META-INF/mods.toml
+
+          # Verify the exact target before Gradle starts.
+          grep -F 'net.neoforged:forge:1.20.1-47.1.106' .ci-neoforge/build.gradle
+          grep -F 'versionRange="[47.1.106,)"' .ci-neoforge/src/main/resources/META-INF/mods.toml
+          test ! -e .ci-neoforge/src/main/resources/META-INF/neoforge.mods.toml
+
+      - name: Compile NeoForge mod
+        working-directory: .ci-neoforge
+        run: gradle --no-daemon clean build
+
+      - name: Validate packaged JAR
+        working-directory: .ci-neoforge
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          jars=(build/libs/*.jar)
+          test "${#jars[@]}" -eq 1
+          jarfile="${jars[0]}"
+          jar tf "$jarfile" | grep -Fx 'META-INF/mods.toml'
+          if jar tf "$jarfile" | grep -q 'META-INF/neoforge.mods.toml'; then
+            echo 'Unexpected post-1.20.1 NeoForge metadata found'
+            exit 1
+          fi
+          unzip -p "$jarfile" META-INF/mods.toml | grep -F 'versionRange="[47.1.106,)"'
+          jar tf "$jarfile" | grep -F 'com/spawningoverhaul/SpawningOverhaul.class'
+          mv "$jarfile" build/libs/spawningoverhaul-neoforge-1.20.1-47.1.106.jar
+
       - uses: actions/upload-artifact@v4
         with:
-          name: spawning-overhaul-neoforge-1.20.1
-          path: build/libs/*.jar
+          name: spawning-overhaul-neoforge-1.20.1-47.1.106
+          path: .ci-neoforge/build/libs/spawningoverhaul-neoforge-1.20.1-47.1.106.jar
           if-no-files-found: error
