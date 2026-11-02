@@ -4,9 +4,9 @@ import com.spawningoverhaul.command.CommandRegistrationHandler;
 import com.spawningoverhaul.config.SpawningConfig;
 import com.spawningoverhaul.event.SpawnEventHandler;
 import com.spawningoverhaul.spawn.rules.MobRuleRegistry;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.common.MinecraftForge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +17,8 @@ public final class SpawningOverhaul {
     public SpawningOverhaul(){
         SpawningConfig.load(FMLPaths.CONFIGDIR.get().resolve("spawningoverhaul.properties"));
         MobRuleRegistry.registerDefaults();
-        NeoForge.EVENT_BUS.register(new SpawnEventHandler());
+        MinecraftForge.EVENT_BUS.register(new SpawnEventHandler());
         NeoForge.EVENT_BUS.register(new CommandRegistrationHandler());
-        LOGGER.info("Spawning Overhaul initialized for Minecraft 1.20.1 / NeoForge 47.1.106");
+        LOGGER.info("Spawning Overhaul initialized for Minecraft 1.20.1 / Forge 47.3.0");
     }
 }
