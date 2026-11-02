@@ -1,17 +1,19 @@
 plugins {
     id 'java'
-    id 'net.neoforged.moddev.legacyforge' version '2.0.87'
+    id 'net.minecraftforge.gradle' version '6.0.24'
 }
 group = mod_group
 version = mod_version
-base { archivesName = mod_id + '-neoforge' }
+base { archivesName = mod_id + '-forge' }
 java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
-legacyForge {
-    version = project.neoforge_version
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
     runs {
-        client { client(); gameDirectory = project.file('run') }
-        server { server(); gameDirectory = project.file('run-server') }
+        client { workingDirectory project.file('run'); mods { spawningoverhaul { source sourceSets.main } } }
+        server { workingDirectory project.file('run-server'); mods { spawningoverhaul { source sourceSets.main } } }
     }
-    mods { spawningoverhaul { sourceSet sourceSets.main } }
 }
-tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.release=17 }
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.3.0'
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 17 }
