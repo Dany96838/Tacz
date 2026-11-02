@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.spawningoverhaul.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "spawningoverhaul.refmap.json",
+  "mixins": [
+    "NaturalSpawnerSpawnStateMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
