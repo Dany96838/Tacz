@@ -21,9 +21,8 @@ jobs:
         with:
           gradle-version: '8.8'
 
-      # NeoForge 1.20.1 is the pre-20.2 compatibility branch:
-      # it uses the Forge 1.20.1 API/package names and META-INF/mods.toml.
-      # Its artifact coordinates are net.neoforged:forge:1.20.1-47.1.106.
+      # NeoForge 1.20.1 is the transitional 47.x branch:
+      # it retains Forge package names and META-INF/mods.toml.
       - name: Prepare NeoForge-specific project
         shell: bash
         run: |
@@ -32,20 +31,58 @@ jobs:
           cp settings.gradle gradle.properties .ci-neoforge/
           cp -R src .ci-neoforge/src
 
-          sed \
-            -e "s/net.minecraftforge:forge:1.20.1-47.3.0/net.neoforged:forge:1.20.1-47.1.106/" \
-            -e "s/mod_id + '-forge'/mod_id + '-neoforge'/" \
-            build.gradle > .ci-neoforge/build.gradle
-
-          # NeoForge 1.20.1 reads the Forge-era mods.toml, not the newer
-          # neoforge.mods.toml format used by NeoForge 1.20.2+.
           rm -f .ci-neoforge/src/main/resources/META-INF/neoforge.mods.toml
-          sed -i 's/versionRange="\[47.3.0,)"/versionRange="[47.1.106,)"/' \
+          sed -i 's/versionRange="\\[47.3.0,)"/versionRange="[47.1.106,)"/' \\
             .ci-neoforge/src/main/resources/META-INF/mods.toml
+          sed -i 's/Forge\\./NeoForge./g' \\
+            .ci-neoforge/src/main/resources/META-INF/mods.toml
+          sed -i 's/Forge 47.3.0/NeoForge 47.1.106/' \\
+            .ci-neoforge/src/main/java/com/spawningoverhaul/SpawningOverhaul.java
 
-          # Verify the exact target before Gradle starts.
-          grep -F 'net.neoforged:forge:1.20.1-47.1.106' .ci-neoforge/build.gradle
+          cat > .ci-neoforge/build.gradle <<'EOF'
+          buildscript {
+              repositories {
+                  maven { url = 'https://maven.neoforged.net/releases' }
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'net.neoforged.gradle:userdev:7.0.163'
+              }
+          }
+
+          apply plugin: 'java'
+          apply plugin: 'net.neoforged.gradle.userdev'
+
+          group = 'com.spawningoverhaul'
+          version = '1.20.1-0.1.0'
+          base { archivesName = 'spawningoverhaul-neoforge-1.20.1' }
+
+          java {
+              toolchain.languageVersion = JavaLanguageVersion.of(17)
+          }
+
+          dependencies {
+              implementation 'net.neoforged:forge:1.20.1-47.1.106'
+          }
+
+          tasks.withType(JavaCompile).configureEach {
+              options.encoding = 'UTF-8'
+              options.release = 17
+          }
+
+          tasks.named('processResources', ProcessResources).configure {
+              inputs.properties(version: project.version)
+              filesMatching('META-INF/mods.toml') {
+                  expand(mod_version: project.version)
+              }
+          }
+          EOF
+
+          # Preflight: fail before Gradle if any target or metadata is wrong.
+          grep -F "net.neoforged.gradle:userdev:7.0.163" .ci-neoforge/build.gradle
+          grep -F "net.neoforged:forge:1.20.1-47.1.106" .ci-neoforge/build.gradle
           grep -F 'versionRange="[47.1.106,)"' .ci-neoforge/src/main/resources/META-INF/mods.toml
+          grep -F '${mod_version}' .ci-neoforge/src/main/resources/META-INF/mods.toml
           test ! -e .ci-neoforge/src/main/resources/META-INF/neoforge.mods.toml
 
       - name: Compile NeoForge mod
@@ -66,6 +103,7 @@ jobs:
             echo 'Unexpected post-1.20.1 NeoForge metadata found'
             exit 1
           fi
+          unzip -p "$jarfile" META-INF/mods.toml | grep -F 'version="1.20.1-0.1.0"'
           unzip -p "$jarfile" META-INF/mods.toml | grep -F 'versionRange="[47.1.106,)"'
           jar tf "$jarfile" | grep -F 'com/spawningoverhaul/SpawningOverhaul.class'
           mv "$jarfile" build/libs/spawningoverhaul-neoforge-1.20.1-47.1.106.jar
