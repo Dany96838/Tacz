@@ -32,12 +32,18 @@ jobs:
           cp -R src .ci-neoforge/src
 
           rm -f .ci-neoforge/src/main/resources/META-INF/neoforge.mods.toml
-          sed -i 's/versionRange="\\[47.3.0,)"/versionRange="[47.1.106,)"/' \\
-            .ci-neoforge/src/main/resources/META-INF/mods.toml
-          sed -i 's/Forge\\./NeoForge./g' \\
-            .ci-neoforge/src/main/resources/META-INF/mods.toml
-          sed -i 's/Forge 47.3.0/NeoForge 47.1.106/' \\
-            .ci-neoforge/src/main/java/com/spawningoverhaul/SpawningOverhaul.java
+          python3 - <<'PY'
+          from pathlib import Path
+          meta = Path('.ci-neoforge/src/main/resources/META-INF/mods.toml')
+          text = meta.read_text()
+          text = text.replace('versionRange="[47.3.0,)"', 'versionRange="[47.1.106,)"')
+          text = text.replace('Forge.', 'NeoForge.')
+          assert 'versionRange="[47.1.106,)"' in text
+          meta.write_text(text)
+          java = Path('.ci-neoforge/src/main/java/com/spawningoverhaul/SpawningOverhaul.java')
+          source = java.read_text().replace('Forge 47.3.0', 'NeoForge 47.1.106')
+          java.write_text(source)
+          PY
 
           cat > .ci-neoforge/build.gradle <<'EOF'
           buildscript {
